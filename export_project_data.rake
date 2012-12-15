@@ -1,8 +1,19 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2012 yukkyna
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 desc 'Export project data.'
 
 namespace :project_data do
   task :export, [:id, :dir] => :environment do |task, args|
-    
+
     p 'export project data'
 
     if !args[:id]
@@ -36,7 +47,7 @@ namespace :project_data do
     # export issues
     Issue.where(:project_id => project.id).find_each do |issue|
       export(file, issue)
-      
+
       # export issue journals
       Journal.where(:journalized_type => 'Issue', :journalized_id => issue.id).find_each do |j|
         export(file, j)
@@ -45,7 +56,7 @@ namespace :project_data do
           export(file, d)
         end
       end
-      
+
       # export issue attachments
       Attachment.where(:container_id => issue.id, :container_type => 'Issue').find_each do |o|
         export(file, o)
@@ -118,11 +129,11 @@ namespace :project_data do
       WikiRedirect.where(:wiki_id => wiki.id).find_each do |r|
         export(file, r)
       end
-      
+
       # export wiki pages
       WikiPage.where(:wiki_id => wiki.id).find_each do |page|
         export(file, page)
-        
+
         # export wiki page contents
         WikiContent.where(:page_id => page.id).find_each do |content|
           export(file, content)
@@ -142,8 +153,10 @@ namespace :project_data do
     end
 
     file.close
+
+    p 'finish'
   end
-  
+
   def export(file, data)
     c = data.class
     file.print("INSERT INTO " + c.table_name + "(" + c.column_names.join(',') + ") VALUES(")
@@ -156,7 +169,7 @@ namespace :project_data do
     }
     file.puts(');')
   end
-  
-  
-  
+
+
+
 end
