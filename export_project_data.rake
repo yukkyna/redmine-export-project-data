@@ -60,7 +60,9 @@ namespace :project_data do
       # export issue attachments
       Attachment.where(:container_id => issue.id, :container_type => 'Issue').find_each do |o|
         export(file, o)
-        FileUtils.copy(Attachment.storage_path + File::SEPARATOR + o.disk_filename, attDir + o.disk_filename)
+        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
+        dest = attDir + o.disk_filename
+        FileUtils.copy(src, dest) if File.exists?(src)
       end
 
       # export issue relations
@@ -81,7 +83,9 @@ namespace :project_data do
       # export document attachments
       Attachment.where(:container_id => document.id, :container_type => 'Document').find_each do |o|
         export(file, o)
-        FileUtils.copy(Attachment.storage_path + File::SEPARATOR + o.disk_filename, attDir + o.disk_filename)
+        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
+        dest = attDir + o.disk_filename
+        FileUtils.copy(src, dest) if File.exists?(src)
       end
     end
 
@@ -117,7 +121,9 @@ namespace :project_data do
       # export version attachments
       Attachment.where(:container_id => version.id, :container_type => 'Version').find_each do |o|
         export(file, o)
-        FileUtils.copy(Attachment.storage_path + File::SEPARATOR + o.disk_filename, attDir + o.disk_filename)
+        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
+        dest = attDir + o.disk_filename
+        FileUtils.copy(src, dest) if File.exists?(src)
       end
     end
 
@@ -142,7 +148,9 @@ namespace :project_data do
         # export wiki page attachments
         Attachment.where(:container_id => page.id, :container_type => 'WikiPage').find_each do |o|
           export(file, o)
-          FileUtils.copy(Attachment.storage_path + File::SEPARATOR + o.disk_filename, attDir + o.disk_filename)
+          src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
+          dest = attDir + o.disk_filename
+          FileUtils.copy(src, dest) if File.exists?(src)
         end
 
         # export wiki page watchers
