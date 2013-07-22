@@ -160,13 +160,13 @@ namespace :project_data do
 			end
 		end
 		
-		def export_wiki_contents
+		def export_wiki_contents(wiki_page)
 			WikiContent.where(:page_id => wiki_page.id).find_each do |wiki_content|
 				export wiki_content
 			end
 		end
 
-		def export_wiki_pages
+		def export_wiki_pages(wiki)
 			WikiPage.where(:wiki_id => wiki.id).find_each do |wiki_page|
 				export wiki_page
 				export_wiki_contents wiki_page
