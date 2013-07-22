@@ -66,7 +66,7 @@ namespace :project_data do
 			end
 		end
 
-		def export journals(journalized)
+		def export_journals(journalized)
 			Journal.where(:journalized_id => journalized.id, :journalized_type => journalized.class.name).find_each do |journal|
 				export journal
 				export journal_details journal
@@ -80,7 +80,7 @@ namespace :project_data do
 			export_attachments @project
 		end
 
-		def export watchers(watchable)
+		def export_watchers(watchable)
 			Watcher.where(:watchable_id => watchable.id, :watchable_type => watchable.class.name).find_each do |watcher|
 				export watcher
 			end
