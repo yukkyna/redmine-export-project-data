@@ -23,7 +23,7 @@ namespace :project_data do
 			}
 		end
 		
-		def initialize
+		def initialize(args)
 			abort 'Identifier is required.' unless args[:id]
 			abort 'Destdir is required.' unless args[:dir]
 			p 'export project data'
@@ -199,7 +199,7 @@ namespace :project_data do
 	end
 
 	task :export, [:id, :dir] => :environment do |task, args|
-		project_data = ProjectData.new
+		project_data = ProjectData.new args
 		project_data.main
 	end
 
