@@ -69,7 +69,7 @@ namespace :project_data do
 		def export_journals(journalized)
 			Journal.where(:journalized_id => journalized.id, :journalized_type => journalized.class.name).find_each do |journal|
 				export journal
-				export journal_details journal
+				export_journal_details journal
 			end
 		end
 		
