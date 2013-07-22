@@ -105,9 +105,9 @@ namespace :project_data do
     end
 
     # export project_trackers
-    Member.where(:project_id => project.id).find_each do |o|
-      export(file, o)
-    end
+    # Member.where(:project_id => project.id).find_each do |o|
+    #   export(file, o)
+    # end
 
     # export queries
     Query.where(:project_id => project.id).find_each do |o|
@@ -167,7 +167,7 @@ namespace :project_data do
 
   def export(file, data)
     c = data.class
-    file.print("INSERT INTO " + c.table_name + "(" + c.column_names.join(',') + ") VALUES(")
+    file.print("INSERT IGNORE INTO " + c.table_name + "(" + c.column_names.join(',') + ") VALUES(")
 
     c.column_names.each_with_index {|key, i|
       file.print(c.connection.quote(data.attributes[key]))
