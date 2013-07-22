@@ -104,7 +104,7 @@ namespace :project_data do
       export(file, member)
       
       # export users
-      User.where(:id => member.user_id).find_each_do |o|
+      User.where(:id => member.user_id).find_each do |o|
         export(file, o)
       end
     end
