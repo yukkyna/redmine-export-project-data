@@ -100,8 +100,13 @@ namespace :project_data do
     end
 
     # export members
-    Member.where(:project_id => project.id).find_each do |o|
-      export(file, o)
+    Member.where(:project_id => project.id).find_each do |member|
+      export(file, member)
+      
+      # export users
+      User.where(:id => member.user_id).find_each_do |o|
+        export(file, o)
+      end
     end
 
     # export project_trackers
