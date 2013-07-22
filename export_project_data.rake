@@ -16,7 +16,7 @@ namespace :project_data do
 		
 		attr_accessor :ident, :dir, :file, :att_dir, :project
 
-		def self.callback(file)
+		def ProjectData.callback(file)
 			proc {
 				file.close if file && !file.closed?
 				p 'finish'
@@ -32,7 +32,7 @@ namespace :project_data do
 			@file = File.open(@dir + @ident + '.sql', "w")
 			@att_dir = @dir + 'files' + File::SEPARATOR
 			Dir::mkdir @att_dir
-			ObjectSpace.define_finalizer(self, self.callback(@file))
+			ObjectSpace.define_finalizer(self, ProjectData.callback(@file))
 		end
 
 		def export(model)
