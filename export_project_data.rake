@@ -167,7 +167,7 @@ namespace :project_data do
 
   def export(file, data)
     c = data.class
-    file.print("INSERT IGNORE INTO " + c.table_name + "(" + c.column_names.join(',') + ") VALUES(")
+    file.print("INSERT INTO " + c.table_name + "(" + c.column_names.join(',') + ") VALUES(")
 
     c.column_names.each_with_index {|key, i|
       file.print(c.connection.quote(data.attributes[key]))
