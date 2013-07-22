@@ -171,7 +171,7 @@ namespace :project_data do
 				export wiki_page
 				export_wiki_contents wiki_page
 				export_attachments wiki_page
-				export_watchers
+				export_watchers wiki_page
 			end
 		end
 
