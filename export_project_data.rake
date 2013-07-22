@@ -8,181 +8,200 @@
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 desc 'Export project data.'
 
 namespace :project_data do
-  task :export, [:id, :dir] => :environment do |task, args|
 
-    p 'export project data'
+	class ProjectData
+		
+		attr_accessor :ident, :dir, :file, :att_dir, :project
 
-    if !args[:id]
-      p 'error id '
-      exit 1
-    end
-    ident = args[:id]
+		def self.callback(file)
+			proc {
+				file.close if file && !file.closed?
+				p 'finish'
+			}
+		end
+		
+		def initialize
+			abort 'Identifier is required.' unless args[:id]
+			abort 'Destdir is required.' unless args[:dir]
+			p 'export project data'
+			@ident = args[:id]
+			@dir = args[:dir]
+			@file = File.open(@dir + @ident + '.sql', "w")
+			@att_dir = @dir + 'files' + File::SEPARATOR
+			Dir::mkdir @att_dir
+			ObjectSpace.define_finalizer(self, self.callback(@file))
+		end
 
-    if !args[:dir]
-      p 'error dir '
-      exit 1
-    end
-    dir = args[:dir]
-    file = File.open(dir + ident + '.sql', "w")
-    attDir = dir + 'files' + File::SEPARATOR
-    Dir::mkdir(attDir)
+		def export(model)
+			values = []
+			model.class.column_names.each {|column_name| values << model.class.connection.quote(model.attributes[column_name])}
+			@file.puts 'INSERT INTO %s (%s) VALUES (%s);' % [model.class.table_name, model.class.column_names.join(', '), values.join(', ')]
+		end
 
-    # export project
-    project = Project.find(:first, :conditions => ["identifier = ?", ident])
-    if project == nil then
-      p 'Could not find project ' + ident
-      exit 1
-    end
-    export(file, project)
+		def export_habtm(first_object, second_object)
+			habtm_table = '%s_%s' % [
+				first_object.class.name.downcase.pluralize,
+				second_object.class.name.downcase.pluralize,
+			]
+			first_id  = '%s_id' % [first_object.class.name.downcase]
+			second_id = '%s_id' % [second_object.class.name.downcase]
+			@file.puts 'INSERT INTO %s (%s, %s) VALUES (%d, %d);' % [habtm_table, first_id, second_id, first_object.id, second_object.id]
+		end		
+		
+		def export_attachments(container)
+			Attachment.where(:container_id => container.id, :container_type => container.class.name).find_each do |attachment|
+				export attachment
+				src = Attachment.storage_path + File::SEPARATOR + attachment.disk_filename
+				dest = @att_dir + attachment.disk_filename
+				FileUtils.copy(src, dest) if File.exists?(src)
+			end
+		end
 
-    # export project attachments
-    Attachment.where(:container_id => project.id, :container_type => 'Project').find_each do |o|
-      export(file, o)
-    end
+		def export_journal_details(journal)
+			JournalDetail.where(:journal_id => journal.id).find_each do |journal_detail|
+				export(journal_detail)
+			end
+		end
 
-    # export issues
-    Issue.where(:project_id => project.id).find_each do |issue|
-      export(file, issue)
+		def export journals(journalized)
+			Journal.where(:journalized_id => journalized.id, :journalized_type => journalized.class.name).find_each do |journal|
+				export journal
+				export journal_details journal
+			end
+		end
+		
+		def export_project
+			@project = Project.find :first, :conditions => ["identifier = ?", @ident]
+			abort 'Could not find project %s!' % [@ident] unless @project.nil?
+			export @project
+			export_attachments @project
+		end
 
-      # export issue journals
-      Journal.where(:journalized_type => 'Issue', :journalized_id => issue.id).find_each do |j|
-        export(file, j)
-        # export issue journal details
-        JournalDetail.where(:journal_id => j.id).find_each do |d|
-          export(file, d)
-        end
-      end
+		def export watchers(watchable)
+			Watcher.where(:watchable_id => watchable.id, :watchable_type => watchable.class.name).find_each do |watcher|
+				export watcher
+			end
+		end
 
-      # export issue attachments
-      Attachment.where(:container_id => issue.id, :container_type => 'Issue').find_each do |o|
-        export(file, o)
-        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-        dest = attDir + o.disk_filename
-        FileUtils.copy(src, dest) if File.exists?(src)
-      end
+		def export_issue_relations(issue)
+			IssueRelation.where(:issue_from_id => issue.id).find_each do |issue_reration|
+				export issue_reration
+			end
+		end
+		
+		def export_issues
+			Issue.where(:project_id => @project.id).find_each do |issue|
+				export issue
+				export_journals issue
+				export_attachments issue
+				export_issue_relations issue
+				export_watchers issue
+			end
+		end
 
-      # export issue relations
-      IssueRelation.where(:issue_from_id => issue.id).find_each do |o|
-        export(file, o)
-      end
+		def export_documents
+			Document.where(:project_id => @project.id).find_each do |document|
+				export document
+				export_attachments document
+			end
+		end
 
-      # export issue watchers
-      Watcher.where(:watchable_id => issue.id, :watchable_type => 'Issue').find_each do |o|
-        export(file, o)
-      end
-    end
+		def export_enabled_modules
+			EnabledModule.where(:project_id => @project.id).find_each do |enabled_module|
+				export enabled_module
+			end
+		end
 
-    # export documents
-    Document.where(:project_id => project.id).find_each do |document|
-      export(file, document)
+		def export_issue_categories
+			IssueCategory.where(:project_id => @project.id).find_each do |issue_category|
+				export issue_category
+			end
+		end
 
-      # export document attachments
-      Attachment.where(:container_id => document.id, :container_type => 'Document').find_each do |o|
-        export(file, o)
-        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-        dest = attDir + o.disk_filename
-        FileUtils.copy(src, dest) if File.exists?(src)
-      end
-    end
+		def export_users(member)
+			User.where(:id => member.user_id).find_each do |user|
+				export user
+			end
+		end
 
-    # export enabled_modules
-    EnabledModule.where(:project_id => project.id).find_each do |o|
-      export(file, o)
-    end
+		def export_members
+			Member.where(:project_id => @project.id).find_each do |member|
+				export member
+				export_users member
+			end
+		end
 
-    # export issue_categories
-    IssueCategory.where(:project_id => project.id).find_each do |o|
-      export(file, o)
-    end
+		def export_project_trackers
+			@project.trackers do |tracker|
+				export tracker
+				export_habtm @project, tracker
+			end
+		end
 
-    # export members
-    Member.where(:project_id => project.id).find_each do |member|
-      export(file, member)
-      
-      # export users
-      User.where(:id => member.user_id).find_each do |o|
-        export(file, o)
-      end
-    end
+		def export_queries
+			Query.where(:project_id => @project.id).find_each do |query|
+				export query
+			end
+		end
 
-    # export project_trackers
-    # Member.where(:project_id => project.id).find_each do |o|
-    #   export(file, o)
-    # end
+		def export_versions
+			Version.where(:project_id => @project.id).find_each do |version|
+				export version
+				export_attachments version
+			end
+		end
 
-    # export queries
-    Query.where(:project_id => project.id).find_each do |o|
-      export(file, o)
-    end
+		def export_wiki_redirects(wiki)
+			WikiRedirect.where(:wiki_id => wiki.id).find_each do |wiki_redirect|
+				export wiki_redirect
+			end
+		end
+		
+		def export_wiki_contents
+			WikiContent.where(:page_id => wiki_page.id).find_each do |wiki_content|
+				export wiki_content
+			end
+		end
 
-    # export versions
-    Version.where(:project_id => project.id).find_each do |version|
-      export(file, version)
+		def export_wiki_pages
+			WikiPage.where(:wiki_id => wiki.id).find_each do |wiki_page|
+				export wiki_page
+				export_wiki_contents wiki_page
+				export_attachments wiki_page
+				export_watchers
+			end
+		end
 
-      # export version attachments
-      Attachment.where(:container_id => version.id, :container_type => 'Version').find_each do |o|
-        export(file, o)
-        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-        dest = attDir + o.disk_filename
-        FileUtils.copy(src, dest) if File.exists?(src)
-      end
-    end
+		def export_wikis
+			Wiki.where(:project_id => @project.id).find_each do |wiki|
+				export wiki
+				export_wiki_redirects wiki
+				export_wiki_pages wiki
+			end
+		end
 
-    # export wikis
-    Wiki.where(:project_id => project.id).find_each do |wiki|
-      export(file, wiki)
+		def main
+			export_project
+			export_issues
+			export_documents
+			export_enabled_modules
+			export_issue_categories
+			export_members
+			export_project_trackers
+			export_queries
+			export_versions
+			export_wikis
+		end
 
-      # export wiki redirects
-      WikiRedirect.where(:wiki_id => wiki.id).find_each do |r|
-        export(file, r)
-      end
+	end
 
-      # export wiki pages
-      WikiPage.where(:wiki_id => wiki.id).find_each do |page|
-        export(file, page)
-
-        # export wiki page contents
-        WikiContent.where(:page_id => page.id).find_each do |content|
-          export(file, content)
-        end
-
-        # export wiki page attachments
-        Attachment.where(:container_id => page.id, :container_type => 'WikiPage').find_each do |o|
-          export(file, o)
-          src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-          dest = attDir + o.disk_filename
-          FileUtils.copy(src, dest) if File.exists?(src)
-        end
-
-        # export wiki page watchers
-        Watcher.where(:watchable_id => page.id, :watchable_type => 'WikiPage').find_each do |o|
-          export(file, o)
-        end
-      end
-    end
-
-    file.close
-
-    p 'finish'
-  end
-
-  def export(file, data)
-    c = data.class
-    file.print("INSERT INTO " + c.table_name + "(" + c.column_names.join(',') + ") VALUES(")
-
-    c.column_names.each_with_index {|key, i|
-      file.print(c.connection.quote(data.attributes[key]))
-      if i != c.columns.size - 1
-        file.print(',')
-      end
-    }
-    file.puts(');')
-  end
-
-
+	task :export, [:id, :dir] => :environment do |task, args|
+		project_data = ProjectData.new
+		project_data.main
+	end
 
 end
+
