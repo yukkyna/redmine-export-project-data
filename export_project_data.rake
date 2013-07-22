@@ -75,7 +75,7 @@ namespace :project_data do
 		
 		def export_project
 			@project = Project.find :first, :conditions => ["identifier = ?", @ident]
-			abort 'Could not find project %s!' % [@ident] unless @project.nil?
+			abort 'Could not find project %s!' % [@ident] if @project.nil?
 			export @project
 			export_attachments @project
 		end
