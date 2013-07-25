@@ -75,7 +75,7 @@ namespace :project_data do
 			@file.puts 'INSERT IGNORE INTO `%s` (`%s`) VALUES (%s);' % [
 				model.class.table_name.force_encoding('UTF-8'), 
 				model.class.column_names.join('`, `').force_encoding('UTF-8'), 
-				values.join(', ').force_encoding('UTF-8')
+				values.join(', ').force_encoding('UTF-8'),
 			]
 		end
 
