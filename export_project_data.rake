@@ -27,8 +27,8 @@ namespace :project_data do
       exit 1
     end
     dir = args[:dir]
-    file = File.open(dir + ident + '.sql', "w")
-    attDir = dir + 'files' + File::SEPARATOR
+    file = File.open(File.join(dir, ident + '.sql'), "w")
+    attDir = File.join(dir, 'files')
     Dir::mkdir(attDir)
 
     # export project
@@ -60,9 +60,8 @@ namespace :project_data do
       # export issue attachments
       Attachment.where(:container_id => issue.id, :container_type => 'Issue').find_each do |o|
         export(file, o)
-        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-        dest = attDir + o.disk_filename
-        FileUtils.copy(src, dest) if File.exists?(src)
+
+        export_file(o, attDir)
       end
 
       # export issue relations
@@ -83,9 +82,8 @@ namespace :project_data do
       # export document attachments
       Attachment.where(:container_id => document.id, :container_type => 'Document').find_each do |o|
         export(file, o)
-        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-        dest = attDir + o.disk_filename
-        FileUtils.copy(src, dest) if File.exists?(src)
+
+        export_file(o, attDir)
       end
     end
 
@@ -121,9 +119,8 @@ namespace :project_data do
       # export version attachments
       Attachment.where(:container_id => version.id, :container_type => 'Version').find_each do |o|
         export(file, o)
-        src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-        dest = attDir + o.disk_filename
-        FileUtils.copy(src, dest) if File.exists?(src)
+
+        export_file(o, attDir)
       end
     end
 
@@ -148,9 +145,8 @@ namespace :project_data do
         # export wiki page attachments
         Attachment.where(:container_id => page.id, :container_type => 'WikiPage').find_each do |o|
           export(file, o)
-          src = Attachment.storage_path + File::SEPARATOR + o.disk_filename
-          dest = attDir + o.disk_filename
-          FileUtils.copy(src, dest) if File.exists?(src)
+          
+          export_file(o, attDir)
         end
 
         # export wiki page watchers
@@ -179,5 +175,15 @@ namespace :project_data do
   end
 
 
+  def export_file(attach, attDir)
+    src = attach.diskfile
+    FileUtils.mkdir_p(File.join(attDir, attach.disk_directory))
+    if attach.attribute_present?('disk_directory')
+      dest = File.join(attDir, attach.disk_directory, attach.disk_filename)
+    else
+      dest = File.join(attDir, attach.disk_filename)
+    end
+    FileUtils.copy(src, dest) if File.exists?(src)
+  end
 
 end
