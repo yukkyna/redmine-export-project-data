@@ -39,6 +39,11 @@ namespace :project_data do
     end
     export(file, project)
 
+    # export project_trackers
+    Tracker.find_each do |o|                                                                                                                                         
+      export(file, o)
+    end
+
     # export project attachments
     Attachment.where(:container_id => project.id, :container_type => 'Project').find_each do |o|
       export(file, o)
@@ -99,11 +104,11 @@ namespace :project_data do
 
     # export members
     Member.where(:project_id => project.id).find_each do |o|
-      export(file, o)
-    end
+      # export user
+      User.where(:id => o.user_id).find_each do |u|
+        export(file, u)
+      end
 
-    # export project_trackers
-    Member.where(:project_id => project.id).find_each do |o|
       export(file, o)
     end
 
