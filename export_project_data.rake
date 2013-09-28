@@ -102,11 +102,6 @@ namespace :project_data do
       export(file, o)
     end
 
-    # export project_trackers
-    Member.where(:project_id => project.id).find_each do |o|
-      export(file, o)
-    end
-
     # export queries
     Query.where(:project_id => project.id).find_each do |o|
       export(file, o)
