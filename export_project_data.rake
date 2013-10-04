@@ -42,6 +42,8 @@ namespace :project_data do
     # export project attachments
     Attachment.where(:container_id => project.id, :container_type => 'Project').find_each do |o|
       export(file, o)
+
+      export_file(o, attDir)
     end
 
     # export issues
