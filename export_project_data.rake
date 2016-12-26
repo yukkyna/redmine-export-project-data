@@ -32,7 +32,7 @@ namespace :project_data do
     Dir::mkdir(attDir)
 
     # export project
-    project = Project.find(:first, :conditions => ["identifier = ?", ident])
+    project = Project.where(:identifier => ident).to_a.pop
     if project == nil then
       p 'Could not find project ' + ident
       exit 1
